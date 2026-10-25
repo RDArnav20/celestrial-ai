@@ -4,37 +4,23 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-const SYSTEM_PROMPT = `
-You are Celestrial AI, a helpful, intelligent AI assistant.
-
-Your personality:
-- Friendly, professional, and clear.
-- Give accurate and useful answers.
-- Help users with coding, writing, learning, and problem solving.
-- Explain code in simple terms when needed.
-- Never claim to have searched the internet unless search was actually used.
-- Never pretend to have read a file that was not provided.
-`;
-
 export async function POST(request: NextRequest) {
   try {
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
       return NextResponse.json(
-        { error: "Gemini API key is not configured." },
+        { error: "GEMINI_API_KEY is missing in Vercel." },
         { status: 500 }
       );
     }
 
     const body = await request.json();
 
-    const {
-      message,
-      history = [],
-      mode = "chat",
-      file,
-    } = body;
+    const message = body.message;
+    const history = body.history || [];
+    const mode = body.mode || "chat";
+    const file = body.file;
 
     if (!message || typeof message !== "string") {
       return NextResponse.json(
@@ -43,9 +29,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const ai = new GoogleGenAI({ apiKey });
+    const ai = new GoogleGenAI({
+      apiKey: apiKey,
+    });
 
-    const contents: any[] = history
+    const contents = history
       .filter(
         (item: any) =>
           (item.role === "user" || item.role === "assistant") &&
@@ -58,14 +46,7 @@ export async function POST(request: NextRequest) {
 
     const userParts: any[] = [
       {
-        text:
-          mode === "coding"
-            ? `Help me with this coding question:\n${message}`
-            : mode === "search"
-            ? `Answer this question using Google Search when useful. Include relevant source URLs in your answer:\n${message}`
-            : mode === "file"
-            ? `Analyze the attached file and answer this question:\n${message}`
-            : message,
+        text: message,
       },
     ];
 
@@ -85,22 +66,17 @@ export async function POST(request: NextRequest) {
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents,
+      contents: contents,
       config: {
-        systemInstruction: SYSTEM_PROMPT,
-        tools:
-          mode === "search"
-            ? [{ googleSearch: {} }]
-            : undefined,
+        systemInstruction:
+          "You are Celestrial AI, a friendly and intelligent AI assistant. Help users with general questions, coding, writing, learning, and problem solving. Explain code clearly.",
       },
     });
 
     return NextResponse.json({
-      reply: response.text || "I couldn't generate a response.",
+      reply: response.text || "I could not generate a response.",
     });
-  
-
-  catch (error) {
+  } catch (error) {
     console.error("Celestrial AI error:", error);
 
     const errorMessage =
@@ -116,4 +92,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
