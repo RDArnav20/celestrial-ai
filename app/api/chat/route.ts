@@ -99,7 +99,8 @@ export async function POST(request: NextRequest) {
       reply: response.text || "I couldn't generate a response.",
     });
   
-} catch (error) {
+
+  catch (error) {
     console.error("Celestrial AI error:", error);
 
     const errorMessage =
@@ -114,3 +115,5 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
