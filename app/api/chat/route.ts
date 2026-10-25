@@ -98,15 +98,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       reply: response.text || "I couldn't generate a response.",
     });
-  } catch (error) {
+  
+} catch (error) {
     console.error("Celestrial AI error:", error);
+
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : String(error);
 
     return NextResponse.json(
       {
-        error:
-          "Something went wrong. Please try again or check your API quota.",
+        error: errorMessage,
       },
       { status: 500 }
     );
   }
-}
