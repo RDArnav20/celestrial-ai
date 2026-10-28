@@ -134,19 +134,64 @@ export default function Home() {
           }),
         });
 
-        const data = await response.json();
+        
+if (!response.ok) {
+  const data = await response.json().catch(() => ({}));
+  throw new Error(data.error || "AI response failed.");
+}
 
-        if (!response.ok) {
-          throw new Error(data.error || "AI response failed.");
-        }
+if (!response.body) {
+  throw new Error("Your browser could not receive the AI response.");
+}
 
-        setMessages((old) => [
-          ...old,
-          {
-            role: "assistant",
-            text: data.reply,
-          },
-        ]);
+// Add an empty assistant message that will fill as text arrives.
+setMessages((old) => [
+  ...old,
+  { role: "assistant", text: "" },
+]);
+
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
+
+while (true) {
+  const { value, done } = await reader.read();
+  if (done) break;
+
+  const chunk = decoder.decode(value, { stream: true });
+
+  setMessages((old) => {
+    const updated = [...old];
+    const last = updated[updated.length - 1];
+
+    if (last?.role === "assistant") {
+      updated[updated.length - 1] = {
+        ...last,
+        text: last.text + chunk,
+      };
+    }
+
+    return updated;
+  });
+}
+
+const remaining = decoder.decode();
+
+if (remaining) {
+  setMessages((old) => {
+    const updated = [...old];
+    const last = updated[updated.length - 1];
+
+    if (last?.role === "assistant") {
+      updated[updated.length - 1] = {
+        ...last,
+        text: last.text + remaining,
+      };
+    }
+
+    return updated;
+  });
+}
+
       }
 
       setFile(null);
@@ -334,7 +379,10 @@ export default function Home() {
                 </div>
               ))}
 
-              {loading && (
+              {loading &&
+  (!messages.length ||
+    messages[messages.length - 1]?.role !== "assistant" ||
+    !messages[messages.length - 1]?.text) && (
                 <div className="loading">
                   <span />
                   <span />
