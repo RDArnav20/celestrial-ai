@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
         for (let attempt = 0; attempt < 3 && !completed; attempt++) {
           try {
             const result = await ai.models.generateContentStream({
-              model: "gemini-3.8-flash",
+              model: "gemini-3.6-flash",
               contents,
               config: {
                 systemInstruction,
